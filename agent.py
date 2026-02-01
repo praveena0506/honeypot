@@ -9,6 +9,8 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+# --- 1. SETUP MODEL ---
+# Using the standard model ID for maximum stability
 llm = ChatGroq(
     temperature=0.7,
     model_name="llama-3.1-8b-instant",
@@ -80,7 +82,6 @@ def generate_reply(state: AgentState):
         content = "Oh dear, my internet seems slow. Can you say that again?"
 
     # Improved Scoring Logic
-    # (Checks for more keywords to be smarter)
     scam_keywords = ["urgent", "pay", "verify", "block", "expired", "kyc", "winner", "prize", "otp"]
     text_lower = state['latest_user_input'].lower()
 
@@ -123,4 +124,5 @@ def process_message(user_text: str, history: List[str]):
     result = app_graph.invoke(initial_state)
 
     # 3. Return everything (Reply, Score, Extracted Data)
+    # THIS MATCHES THE NEW MAIN.PY EXPECTATIONS
     return result['reply'], result['scam_score'], intel
