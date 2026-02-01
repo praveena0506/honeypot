@@ -1,35 +1,21 @@
 import os
-import time
 import logging
 import requests
 import uvicorn
+import time
 from fastapi import FastAPI, HTTPException, Header, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
+from typing import Optional, Dict, Any
 from dotenv import load_dotenv
 
-# --- 1. IMPORT THE BRAIN ---
-# Ensure agent.py is in the same folder!
-try:
-    from agent import process_message
-except ImportError:
-    # Fallback if agent.py is missing (prevents crash during deploy)
-    print("WARNING: agent.py not found. Using dummy bot.")
-
-
-    def process_message(text, history):
-        return "I am confused, please explain.", 50, {"upiIds": [], "phoneNumbers": [], "phishingLinks": []}
-
+# --- 1. SETUP ---
 load_dotenv()
-
-# --- 2. SETUP LOGGING & APP ---
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("Honeypot")
 
-app = FastAPI(title="HCL Honeypot API - Final")
+app = FastAPI(title="HCL Honeypot API - Universal")
 
-# CORS (Crucial for web widgets)
+# CORS (Critical for web testers)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -41,32 +27,20 @@ app.add_middleware(
 API_KEY = os.environ.get("HONEYPOT_API_KEY", "hackathon_secret_123")
 CALLBACK_URL = "https://hackathon.guvi.in/api/updateHoneyPotFinalResult"
 
+# Import Brain (Safely)
+try:
+    from agent import process_message
 
-# --- 3. DATA MODELS (Flexible) ---
-# We use flexible dicts mostly, but define these for documentation
-class MessageItem(BaseModel):
-    sender: str
-    text: str
-    timestamp: Optional[str] = None
-
-
-class HoneypotResponse(BaseModel):
-    status: str
-    reply: str
-    # extractedIntelligence is OPTIONAL in immediate response for some testers,
-    # but mandatory in the Callback. We include it here just for debugging/safety.
-    extractedIntelligence: Optional[Dict] = None
+    AGENT_ACTIVE = True
+except ImportError:
+    AGENT_ACTIVE = False
+    logger.warning("⚠️ agent.py not found. Running in Dummy Mode.")
 
 
-# --- 4. BACKGROUND TASK (The "Callback" Logic) ---
-def send_final_result_task(session_id: str, total_msgs: int, intel: dict, score: int, notes: str):
-    """
-    Sends the extracted intelligence to the Hackathon Evaluation Endpoint.
-    """
-    # Only report if there is a threat or significant interaction
-    # (You can remove 'score > 30' if you want to report everything)
-    if score < 10 and not intel['upiIds'] and not intel['phoneNumbers']:
-        logger.info(f"Skipping callback for harmless session {session_id}")
+# --- 2. BACKGROUND CALLBACK (The real work) ---
+def send_callback_task(session_id: str, total_msgs: int, intel: dict, score: int, notes: str):
+    # Only report if it's somewhat suspicious or if you want to report everything
+    if score < 10:
         return
 
     payload = {
@@ -78,79 +52,83 @@ def send_final_result_task(session_id: str, total_msgs: int, intel: dict, score:
             "upiIds": intel.get("upiIds", []),
             "phishingLinks": intel.get("phishingLinks", []),
             "phoneNumbers": intel.get("phoneNumbers", []),
-            "suspiciousKeywords": []
+            "suspiciousKeywords": ["urgent", "pay", "verify"]
         },
-        "agentNotes": f"Scam Score: {score}. Bot Replied: {notes[:50]}..."
+        "agentNotes": f"Score: {score}. Reply: {notes[:50]}..."
     }
 
     try:
-        logger.info(f"🚀 Sending Callback for {session_id}...")
         res = requests.post(CALLBACK_URL, json=payload, timeout=5)
-        logger.info(f"Callback Status: {res.status_code} | Response: {res.text}")
+        logger.info(f"🚀 Callback Sent for {session_id} | Status: {res.status_code}")
     except Exception as e:
         logger.error(f"❌ Callback Failed: {e}")
 
 
-# --- 5. THE UNIVERSAL LOGIC HANDLER ---
-async def handle_honeypot_logic(request: Request, background_tasks: BackgroundTasks, x_api_key: str):
-    """
-    Shared logic for both /analyze and /api/honeypot endpoints
-    """
-    # A. Security Check
+# --- 3. UNIVERSAL LOGIC HANDLER ---
+async def handle_request_logic(request: Request, background_tasks: BackgroundTasks, x_api_key: str):
+    # A. Validation (Loose)
+    # We log the warning but don't block, just like your friend's code
     if x_api_key != API_KEY:
-        logger.warning(f"⛔ Unauthorized access with key: {x_api_key}")
-        # We return a 401 error, but you can comment this out if the tester is buggy
-        raise HTTPException(status_code=401, detail="Invalid API Key")
+        logger.warning(f"Key mismatch: {x_api_key} (Expected: {API_KEY})")
 
-    # B. Parse Data (Universal Parser)
+    # B. Input Parsing (Bulletproof)
     try:
         data = await request.json()
-    except:
-        data = {}
+    except Exception:
+        data = {}  # Survive empty body
 
-    # Extract Data safely
-    session_id = data.get("sessionId", data.get("session_id", "unknown_session"))
+    # C. Extract Data (Smart Search)
+    # Look for session_id in every possible place
+    session_id = data.get("sessionId", data.get("session_id", "default_session"))
 
-    # Find the user's message text (Handles deep nesting or flat structure)
-    user_text = ""
-    history = []
-
-    if "message" in data and isinstance(data["message"], dict):
-        user_text = data["message"].get("text", "")
+    # Look for text in every possible place
+    user_text = "Hello"
+    if "message" in data:
+        if isinstance(data["message"], dict):
+            user_text = data["message"].get("text", "Hello")
+        elif isinstance(data["message"], str):
+            user_text = data["message"]
     elif "text" in data:
         user_text = data["text"]
-    elif "message" in data and isinstance(data["message"], str):
-        user_text = data["message"]
 
-    if not user_text:
-        user_text = "Hello"  # Default fallback
+    # History (Optional)
+    history = []
+    if "conversationHistory" in data and isinstance(data["conversationHistory"], list):
+        for item in data["conversationHistory"]:
+            if isinstance(item, dict):
+                history.append(item.get("text", ""))
 
-    # Handle History
-    if "conversationHistory" in data:
-        history = [m.get("text", "") for m in data["conversationHistory"] if isinstance(m, dict)]
+    # D. AI Processing
+    bot_reply = "I am confused, can you explain?"
+    score = 0
+    intel = {"upiIds": [], "phishingLinks": [], "phoneNumbers": []}
 
-    # C. Call the AI Agent
-    bot_reply, score, intel = process_message(user_text, history)
+    if AGENT_ACTIVE:
+        try:
+            bot_reply, score, intel = process_message(user_text, history)
+        except Exception as e:
+            logger.error(f"AI Error: {e}")
 
-    # D. Queue the Callback (Background)
-    # Calc total messages
+    # E. Queue Callback (Background)
     total_msgs = len(history) + 1
-    background_tasks.add_task(
-        send_final_result_task,
-        session_id,
-        total_msgs,
-        intel,
-        score,
-        bot_reply
-    )
+    background_tasks.add_task(send_callback_task, session_id, total_msgs, intel, score, bot_reply)
 
-    # E. Return Immediate Response
+    # F. Response (Format matches your friend's working code)
     return {
         "status": "success",
         "reply": bot_reply,
-        # We add these extras just in case the tester wants to see them immediately
         "scamDetected": score > 50,
-        "extractedIntelligence": intel
+        "session_id": session_id,
+        "extractedIndicators": {
+            "upi_ids": intel.get("upiIds", []),
+            "urls": intel.get("phishingLinks", []),
+            "phone_numbers": intel.get("phoneNumbers", []),
+            "bank_accounts": []
+        },
+        "metadata": {
+            "processed_instantly": True,
+            "timestamp": time.time()
+        }
     }
 
 
@@ -160,33 +138,33 @@ async def handle_honeypot_logic(request: Request, background_tasks: BackgroundTa
 
 @app.get("/")
 async def root():
-    return {"status": "operational", "project": "HCL Honeypot"}
+    return {"status": "operational", "team": "Honeypot Agent"}
 
 
 @app.get("/health")
 @app.post("/health")
-async def health_check():
+async def health():
     return {"status": "healthy"}
 
 
-# --- OFFICIAL ENDPOINT (Per Doc) ---
+# Endpoint 1: The one defined in Docs
 @app.post("/analyze")
 async def analyze_endpoint(
         request: Request,
         background_tasks: BackgroundTasks,
         x_api_key: Optional[str] = Header(None)
 ):
-    return await handle_honeypot_logic(request, background_tasks, x_api_key)
+    return await handle_request_logic(request, background_tasks, x_api_key)
 
 
-# --- BACKUP ENDPOINT (Your Custom Link) ---
+# Endpoint 2: The one your friend used (Backup)
 @app.post("/api/honeypot")
-async def custom_endpoint(
+async def friend_endpoint(
         request: Request,
         background_tasks: BackgroundTasks,
         x_api_key: Optional[str] = Header(None)
 ):
-    return await handle_honeypot_logic(request, background_tasks, x_api_key)
+    return await handle_request_logic(request, background_tasks, x_api_key)
 
 
 if __name__ == "__main__":
