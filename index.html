@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Honeypot Command Center</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .terminal-bg { background-color: #0f172a; }
+        .terminal-text { color: #22c55e; font-family: 'Courier New', Courier, monospace; }
+        .blinking-cursor::after { content: '|'; animation: blink 1s step-end infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-gray-100 h-screen overflow-hidden flex font-sans">
+
+    <div class="w-1/2 h-full flex flex-col bg-white border-r border-gray-300 shadow-xl relative z-10">
+        <div class="bg-gray-800 text-white p-4 flex items-center shadow-md">
+            <div class="w-10 h-10 rounded-full bg-gray-500 flex items-center justify-center text-xl mr-3">👴</div>
+            <div>
+                <h2 class="font-semibold text-lg">Grandpa Ramachandran</h2>
+                <p class="text-xs text-green-400">● Online (AI Agent Active)</p>
+            </div>
+        </div>
+
+        <div id="chat-box" class="flex-1 p-4 overflow-y-auto bg-[url('https://i.pinimg.com/originals/8f/ba/cb/8fbacbd464e996966eb9d4a6b7a9c21e.jpg')] bg-cover">
+            <div class="flex justify-start mb-4">
+                <div class="bg-white text-gray-800 px-4 py-2 rounded-lg max-w-[70%] shadow-sm border border-gray-200">
+                    Hello dear, I am looking for my pension update. Is this the bank?
+                </div>
+            </div>
+        </div>
+
+        <div id="typing-indicator" class="hidden px-4 pb-2 text-sm text-gray-500 italic">Grandpa is typing...</div>
+
+        <div class="p-3 bg-gray-100 border-t flex items-center">
+            <input type="text" id="user-input" class="flex-1 p-3 rounded-full border border-gray-300 focus:outline-none focus:border-blue-500" placeholder="Type your scam message..." onkeydown="trackKeystrokes(event)">
+            <button onclick="sendMessage()" class="ml-3 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="w-1/2 h-full terminal-bg text-gray-300 p-6 flex flex-col font-mono shadow-2xl z-0">
+        <div class="flex justify-between items-end border-b border-gray-700 pb-3 mb-6">
+            <h1 class="text-2xl font-bold text-red-500"><i class="fas fa-biohazard mr-2"></i>PROJECT HONEYPOT</h1>
+            <div id="sys-status" class="text-sm terminal-text blinking-cursor">SYSTEM ARMED - LISTENING</div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <div class="bg-gray-800 p-4 rounded border border-gray-700">
+                <p class="text-xs text-gray-400">Scam Confidence Score</p>
+                <div class="text-3xl font-bold mt-1" id="score-display">0/100</div>
+            </div>
+
+            <div class="bg-gray-800 p-4 rounded border border-gray-700">
+                <div class="flex justify-between text-xs text-gray-400 mb-2">
+                    <span>Psychological State (Frustration)</span>
+                    <span id="frustration-text">0%</span>
+                </div>
+                <div class="w-full bg-gray-900 rounded-full h-3 mb-1 border border-gray-600">
+                    <div id="frustration-bar" class="bg-purple-500 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+                <p class="text-[9px] text-gray-500 text-right">Llama-3 Behavioral Analysis</p>
+            </div>
+        </div>
+
+        <h3 class="text-lg text-white mb-2 border-b border-gray-700 pb-1"><i class="fas fa-database mr-2"></i>Intercepted Intel</h3>
+        <div class="flex-1 overflow-y-auto bg-gray-900 rounded border border-gray-700 p-4 space-y-4" id="intel-terminal">
+            <div class="text-xs text-gray-500">Waiting for data extraction...</div>
+        </div>
+    </div>
+
+    <script>
+        // --- Keystroke Tracking Logic ---
+        let typeStartTime = null;
+        let backspaceCount = 0;
+        const userInput = document.getElementById('user-input');
+
+        function trackKeystrokes(e) {
+            if (!typeStartTime && e.key !== 'Enter') {
+                typeStartTime = new Date().getTime(); // Start timer on first keypress
+            }
+            if (e.key === 'Backspace') {
+                backspaceCount++;
+            }
+            if (e.key === 'Enter') sendMessage();
+        }
+
+        async function sendMessage() {
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            // Calculate WPM
+            let wpm = 0;
+            if (typeStartTime) {
+                const timeElapsedMs = new Date().getTime() - typeStartTime;
+                const minutes = timeElapsedMs / 60000;
+                const wordCount = text.split(/\s+/).length;
+                wpm = minutes > 0 ? Math.round(wordCount / minutes) : 0;
+            }
+
+            const typingMetadata = {
+                wpm: wpm,
+                backspaces: backspaceCount
+            };
+
+            // Reset trackers
+            typeStartTime = null;
+            backspaceCount = 0;
+
+            // UI Updates
+            const chatBox = document.getElementById('chat-box');
+            chatBox.innerHTML += `<div class="flex justify-end mb-4"><div class="bg-green-100 border border-green-300 text-gray-800 px-4 py-2 rounded-lg max-w-[70%] shadow">${text}</div></div>`;
+            userInput.value = '';
+            document.getElementById('typing-indicator').classList.remove('hidden');
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text, typing_metadata: typingMetadata })
+                });
+                const data = await response.json();
+
+                document.getElementById('typing-indicator').classList.add('hidden');
+                chatBox.innerHTML += `<div class="flex justify-start mb-4"><div class="bg-white border text-gray-800 px-4 py-2 rounded-lg max-w-[70%] shadow-sm">${data.reply}</div></div>`;
+                chatBox.scrollTop = chatBox.scrollHeight;
+
+                // Update Meters
+                document.getElementById('score-display').innerText = `${data.scamDetected ? 95 : 20}/100`;
+
+                // Update Frustration UI
+                const fScore = data.frustrationIndex || 0;
+                document.getElementById('frustration-bar').style.width = `${fScore}%`;
+                document.getElementById('frustration-text').innerText = `${fScore}%`;
+                if (fScore > 70) document.getElementById('frustration-bar').classList.replace('bg-purple-500', 'bg-red-500');
+
+                // Update Intel
+                const intel = data.extractedIntelligence;
+                const term = document.getElementById('intel-terminal');
+                if (term.innerHTML.includes("Waiting")) term.innerHTML = "";
+
+                ['upiIds', 'phoneNumbers', 'phishingLinks'].forEach(key => {
+                    if(intel[key]) {
+                        intel[key].forEach(item => {
+                            term.innerHTML += `<div class="flex items-start"><span class="text-yellow-500 mr-2 mt-1"><i class="fas fa-check-circle"></i></span><div><p class="text-xs text-gray-400">[EXTRACTED]</p><p class="terminal-text font-bold">${item}</p></div></div>`;
+                        });
+                    }
+                });
+                term.scrollTop = term.scrollHeight;
+
+            } catch (error) {
+                console.error(error);
+                document.getElementById('typing-indicator').classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
