@@ -1,7 +1,4 @@
+dspy-ai
+python-dotenv
 fastapi
 uvicorn
-pydantic
-langgraph
-langchain-groq
-python-dotenv
-requests
