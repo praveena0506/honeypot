@@ -1,34 +1,20 @@
-# Honeypot
+Project Grandpa: Autonomous AI Honeypot 🍯👴
 
-Agentic AI to detect scams and continue messaging until gathering details of the scammer.
+Project Grandpa is an autonomous agentic system designed to intercept financial scammers, waste their time, and harvest actionable threat intelligence. It bridges mobile communication (SMS/Telegram) with cloud-native AI to turn the tables on attackers
 
-## Overview
-This repository contains a Python-based project focused on detecting scam behavior and engaging in continued messaging to collect relevant scammer details for analysis.
+.Note: Replace the image above with your own system architecture diagram (e.g., from Excalidraw or a whiteboard sketch). It significantly increases project credibility.🚀 Key FeaturesAutonomous Interception: Bridges Android SMS and Telegram to an AI-driven backend, enabling real-time detection without manual intervention.
 
-## Tech Stack
-- Python
+Adaptive Persona (DSPy): Uses DSPy to modulate the agent’s "frustration levels." As scammers get aggressive, the agent becomes progressively more confused, keeping them engaged in a loop.Intelligent Extraction: Automated pipeline to scrape UPI IDs, phishing links, and threat metadata from scammer chat logs.Agentic Workflow
 
-## Getting Started
-### Prerequisites
-- Python 3.10+ (recommended)
+(LangGraph): Orchestrates complex, stateful conversations that maintain context and persona consistency throughout the attack.🛠 Tech StackComponentTechnologyBackendPython, FastAPIAgentic FrameworkLangGraph, DSPyLLM InferenceGroq (Llama-3.1-8B-Instant)Mobile BridgeMacroDroid (SMS/Notification Forwarding)CommunicationTelegram (Telethon), SMS Webhooks🏗 Architecture OverviewThe system operates on a "Listener-Brain-Harvester" flow:Listener: MacroDroid captures incoming SMS/Notifications on the device and triggers a webhook.Brain: FastAPI receives the payload, and LangGraph orchestrates the stateful LLM response.Harvester: The system performs regex-based intelligence extraction on scammer messages before logging.
 
-### Installation
-1. Clone the repository:
-   - git clone https://github.com/praveena0506/honeypot.git
-2. Create and activate a virtual environment:
-   - python -m venv .venv
-   - source .venv/bin/activate  (macOS/Linux)
-   - .venv\\Scripts\\activate  (Windows)
-3. Install dependencies (if a requirements file exists):
-   - pip install -r requirements.txt
-
-## Usage
-Add usage instructions here once the entry point and commands are defined.
-
-## Contributing
-1. Fork the repo
-2. Create a feature branch
-3. Open a pull request
-
-## License
-Add a license file (e.g., MIT) and update this section accordingly.
+⚙️ Getting StartedPrerequisitesPython 3.10+Groq API Key (Sign up at Groq Console)Telegram API ID/Hash (If using the Telegram module)InstallationClone the repository:Bashgit clone https://github.com/praveena0506/honeypot.git
+cd honeypot
+Setup Virtual Environment:Bashpython -m venv .venv
+source .venv/bin/activate  # macOS/Linux
+.venv\Scripts\activate     # Windows
+Install Dependencies:Bashpip install -r requirements.txt
+Environment Configuration:Create a .env file in the root directory:Code snippetGROQ_API_KEY=your_groq_api_key_here
+TELEGRAM_API_ID=your_id
+TELEGRAM_API_HASH=your_hash
+🛡 Security NoticeThis project is for educational and security research purposes only. Do not deploy this in a way that interacts with real, unsuspecting victims. Always use a dedicated/burner environment when testing.📜 LicenseDistributed under the MIT License. See LICENSE for more information.
